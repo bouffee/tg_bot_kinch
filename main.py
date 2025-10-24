@@ -44,8 +44,9 @@ def restricted(func):
 @restricted
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        ["/list", "/add", "/remove"],
-        ["/random", "/clear", "/hat"]
+        ["🎬 Список", "🎲 Случайный"],
+        ["➕ Добавить", "➖ Удалить"],
+        ["🧹 Очистить", "🎩 Шляпа"]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
@@ -123,7 +124,7 @@ async def get_random(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def remove_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = load_data()
     if not data:
-        await update.effective_message.reply_text("Список уже пуст.")
+        await update.effective_message.reply_text("Список пуст...")
         return
 
     save_data([])  # записываем пустой список в файл
@@ -136,8 +137,32 @@ async def hat(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @restricted 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
     state = context.user_data.get('state')
-
+    
+    menu_buttons = ["🎬 Список", "🎲 Случайный", "🧹 Очистить", "🎩 Шляпа", "➕ Добавить", "➖ Удалить"]
+    
+    if text in menu_buttons:
+        context.user_data.pop("state", None)
+    state = context.user_data.get('state')
+    
+    if state is None:
+        if text == "🎬 Список":
+            await movie_list(update, context)
+        elif text == "🎲 Случайный":
+            await get_random(update, context)
+        elif text == "🧹 Очистить":
+            await remove_all(update, context)
+        elif text == "🎩 Шляпа":
+            await hat(update, context)
+        elif text == "➕ Добавить":
+            await update.message.reply_text("Введите название фильма для добавления:")
+            context.user_data["state"] = "adding"
+        elif text == "➖ Удалить":
+            await update.message.reply_text("Введите название фильма для удаления:")
+            context.user_data["state"] = "removing"
+        return
+        
     if state == 'waiting_for_count':
         try:
             count = int(update.message.text)
